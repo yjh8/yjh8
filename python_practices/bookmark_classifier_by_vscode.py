@@ -1,11 +1,9 @@
 import json
 import csv
 import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from collections import defaultdict
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
@@ -30,7 +28,7 @@ def extract_keywords(text):
 
 # Function to classify bookmarks into categories using KMeans
 def classify_bookmarks(bookmarks, num_categories=5):
-    descriptions = [bookmark['description'] for bookmark in bookmarks]
+    descriptions = [bookmark.get('description', '') for bookmark in bookmarks]
     vectorizer = TfidfVectorizer(stop_words='english')
     X = vectorizer.fit_transform(descriptions)
     kmeans = KMeans(n_clusters=num_categories, random_state=42)
@@ -41,9 +39,9 @@ def classify_bookmarks(bookmarks, num_categories=5):
 
 # Function to generate tags based on content
 def generate_tags(bookmark):
-    text = bookmark['description']
+    text = bookmark.get('description', '')
     keywords = extract_keywords(text)
-    stop_words = set(stopwords.words('english'))
+    stop_words = STOP_WORDS
     filtered_keywords = [word for word in keywords if word.lower() not in stop_words]
     return list(set(filtered_keywords))
 
@@ -54,6 +52,8 @@ def save_bookmarks(bookmarks, output_file):
             json.dump(bookmarks, f, indent=4)
     elif output_file.endswith('.csv'):
         with open(output_file, 'w', newline='') as f:
+            if not bookmarks:
+                return
             fieldnames = bookmarks[0].keys()
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
